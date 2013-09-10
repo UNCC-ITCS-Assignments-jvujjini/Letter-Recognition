@@ -1,57 +1,47 @@
 import numpy as np
-#import time
-#from scipy.spatial import KDTree
+import time
+from collections import Counter
 
-def condense(training_set,condensed_set):  
-    
-    result = []
-    check = condensed_set
+def classify(training_set,test_set,k):  
         
-    for case in training_set:
+        result = []
         
-        min_distance = float("inf")
-        
-        for example in condensed_set:
+        for case in test_set:
             
-            distance = np.linalg.norm(case[1:]-example[1:])
+            k_neighbors = []
+            points = []
+            min_distance = float("inf")
             
-            if distance < min_distance:
-                min_distance = distance
-                #min_distance_variable = example[0]
+            for example in training_set:
                 
-                if case[0] != example[0]:
-                    array = np.array([case])
-                    np.concatenate([condensed_set,array])
-                    np.delete(training_set,array)
-        
-        print condensed_set
-    
-    while True:
-        if np.array_equal(result, check):
-            break
-        result = condense(training_set,condensed_set)
-        
-    return result
+                distance = np.linalg.norm(case[1:]-example[1:])
+                
+                if(len(k_neighbors) < k):
+                    k_neighbors.append((distance,example[0]))
+                    k_neighbors.sort()
+                else:
+                    if distance < min_distance:
+                        k_neighbors.remove(k_neighbors[-1])
+                        k_neighbors.append((distance,example[0]))
+                        k_neighbors.sort()
+                        min_distance = k_neighbors[-1][0]
+                
+            for point in k_neighbors:
+                    points.append(point[1])
+            
+            
+            nearest_neighbor = Counter(points).most_common(1)
+            result.append(chr(int(nearest_neighbor[0][0])+65))
+            
+        return result
 
 fname = 'letter-recognition.data'
 
 data = np.loadtxt(fname, np.float32, delimiter=',', converters={ 0 : lambda ch : ord(ch)-ord('A') })
-training_data, test_data, test_response = data[:10,:],data[19990:,:],data[19990:,0]
+training_data, test_data, test_response = data[:15000,:],data[15000:,:],data[15000:,0]
 
-condensed_data = test_data[:2]
-count = 0
-x = condense(training_data,condensed_data)
-'''for y in x:
-    count +=1'''
-print x.shape()
-
-
-#kdtree = KDTree(training_data,leafsize=10)
-
-#print kdtree.query(training_data, 5, 1, 2)
-
-'''start = time.time()
-result = classify(training_data,test_data)
+start = time.time()
+result = classify(training_data,test_data,7)
 print result
 end = time.time()
 print "It took " + str((end - start)/60) + " minutes"
@@ -59,7 +49,7 @@ print "It took " + str((end - start)/60) + " minutes"
 correct = 0
 
 for x in xrange(len(test_response)):
-    if result[x] == test_response[x]:
+    if result[x] == chr(int(test_response[x])+65):
         correct += 1
 
-print str(correct) + " test cases classified correctly out of " + str(len(test_response)) + " with an efficiency of " + str(float((correct*100))/len(test_response))''' 
+print str(correct) + " test cases classified correctly out of " + str(len(test_response)) + " with an efficiency of " + str(float((correct*100))/len(test_response)) 
